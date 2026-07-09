@@ -1,0 +1,1 @@
+{"flutter":{"platforms":{"android":{"default":{"projectId":"dvr-timer","appId":"1:211339829221:android:a5f0d62523d6eb280c590c","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"dvr-timer","configurations":{"android":"1:211339829221:android:a5f0d62523d6eb280c590c","ios":"1:211339829221:ios:ca3b3735581914090c590c"}}}}}}

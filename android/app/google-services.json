@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "211339829221",
+    "project_id": "dvr-timer",
+    "storage_bucket": "dvr-timer.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:211339829221:android:a5f0d62523d6eb280c590c",
+        "android_client_info": {
+          "package_name": "com.dvrtime.codexus"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "211339829221-b3u3ii753f8if1nklepavkq1gfnj7e2f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dvrtime.codexus",
+            "certificate_hash": "1773b7408480a8bbe1e7bb233b6b1d2bac4a8224"
+          }
+        },
+        {
+          "client_id": "211339829221-esc2as8u9ooipilph9dv92j81vva5qd5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALCutQWih9HnceffgvnHlBXofi4QQuVPs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "211339829221-esc2as8u9ooipilph9dv92j81vva5qd5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "211339829221-mfhee0p31n7sr04ufktnmd0q66t68qcq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dvrtime.codexus"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
