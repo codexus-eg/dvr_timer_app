@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "211339829221-0jnq5rq80i74cp4rcgm6euk2i33oagv0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dvrtime.codexus",
+            "certificate_hash": "be55508fa5d81142a9371d1b2e8903409f1ba7a2"
+          }
+        },
+        {
           "client_id": "211339829221-b3u3ii753f8if1nklepavkq1gfnj7e2f.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
