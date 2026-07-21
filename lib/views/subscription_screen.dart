@@ -120,7 +120,8 @@ class SubscriptionScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 36),
 
-                    // زرار الاشتراك (مربوط بالدفع)
+                    // زرار الاشتراك الإلكتروني
+                    // استبدل جزء زرار الاشتراك بالـ Obx المحدث ده:
                     Obx(
                       () => SizedBox(
                         width: double.infinity,
@@ -130,12 +131,24 @@ class SubscriptionScreen extends StatelessWidget {
                               ? null
                               : () async {
                                   isLoading.value = true;
-                                  String? key = await paymentController
-                                      .getPaymentKey();
+                                  final String? sessionUrl =
+                                      await paymentController
+                                          .createPaymentSession();
                                   isLoading.value = false;
-                                  if (key != null) {
+
+                                  if (sessionUrl != null &&
+                                      sessionUrl.isNotEmpty) {
                                     Get.to(
-                                      () => PaymentWebView(paymentKey: key),
+                                      () => PaymentWebView(
+                                        paymentUrl: sessionUrl,
+                                      ),
+                                    );
+                                  } else {
+                                    Get.snackbar(
+                                      "خطأ",
+                                      "لم يتم فتح صفحة الدفع بنجاح.",
+                                      backgroundColor: Colors.red,
+                                      colorText: Colors.white,
                                     );
                                   }
                                 },
@@ -151,7 +164,7 @@ class SubscriptionScreen extends StatelessWidget {
                               : const Icon(Icons.bolt, color: Colors.black87),
                           label: Text(
                             isLoading.value
-                                ? 'جاري التحميل...'
+                                ? 'جاري تجهيز بوابة الدفع...'
                                 : 'اشترك الآن وفعل التطبيق',
                             style: const TextStyle(
                               fontSize: 16,

@@ -10,7 +10,8 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authController = Get.put(AuthController());
+    // التأكد من استدعاء الـ Controller
+    final AuthController authController = Get.put(AuthController());
 
     return Obx(() {
       final user = authController.firebaseUser.value;
@@ -23,7 +24,6 @@ class AuthGate extends StatelessWidget {
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
 
-      // لو الاشتراك ساري - بدون const
       if (authController.activeSubscription) {
         return DvrCalculatorScreen(
           isSubscribed: true,
@@ -32,17 +32,14 @@ class AuthGate extends StatelessWidget {
         );
       }
 
-      // لو لسه مبدأش الفترة التجريبية - بدون const
       if (!authController.trialStarted) {
         return SubscriptionScreen(showTrialOption: true);
       }
 
-      // لو الفترة التجريبية انتهت - بدون const
       if (authController.daysLeft <= 0) {
         return SubscriptionScreen(showTrialOption: false);
       }
 
-      // لو لسه في الفترة التجريبية - بدون const
       return DvrCalculatorScreen(
         isSubscribed: false,
         daysLeft: authController.daysLeft,

@@ -1,86 +1,91 @@
-import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'auth_controller.dart';
 
 class PaymentController extends GetxController {
   final Dio _dio = Dio();
 
-  // بيانات الـ Live النهائية المربوطة بحسابك
-  final String _apiKey =
-      "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRNNE56QTJMQ0p1WVcxbElqb2lNVGN4TnpNMk5UZzVOUzQ0TVRRME56UWlmUS55V1I5V2dPUVhwS0NKd1N3NFlhSGZRb0g0aGUta1JiaWlYZ1NZbUFZV3BWME9OMDZRRG04YWxsREMtZEhERzhVWmRqVnBzTkFhbGNfWWJKZXhPMTZkUQ==";
-  final int _integrationIdVisa = 2290599;
-  final int _amountCents = 5000; // 50 جنيه قيمة الاشتراك
+  // بيانات كاشير الحية
+  final String _merchantId = "MID-10201-314";
+  final String _paymentApiKey = "72b61bc7-9a2e-4ea3-8509-81ebc060776e";
+  final String _secretKey =
+      "d5388953d5a65b43f3d9c5b8b5f501fc\$a66a1d554769ea9ab62d17d6c76d658675ccea752650133a32ebdf8fd54fa46242d3be008b44c16eede8bb90ae639a42";
 
-  Future<String?> getPaymentKey() async {
+  final String _amount = "50.00"; // المبلغ بالتنسيق المطلوب
+  final String _currency = "EGP";
+
+  /// إنشاء جلسة دفع جديدة والحصول على sessionUrl المباشر
+  Future<String?> createPaymentSession() async {
     try {
-      // 1. مرحلة التوثيق والحصول على رمز الوصول (Authentication)
-      var authResponse = await _dio.post(
-        "https://accept.paymob.com/api/auth/tokens",
-        data: {"api_key": _apiKey},
-      );
-      String authToken = authResponse.data['token'];
+      final String orderId = "DVR_${DateTime.now().millisecondsSinceEpoch}";
+      final String userEmail =
+          AuthController.instance.firebaseUser.value?.email ??
+          "customer@dvr-timer.com";
 
-      // 2. مرحلة تسجيل الطلب في السيرفر (Order Registration)
-      var orderResponse = await _dio.post(
-        "https://accept.paymob.com/api/ecommerce/orders",
-        data: {
-          "auth_token": authToken,
-          "delivery_needed": "false",
-          "amount_cents": _amountCents.toString(),
-          "currency": "EGP",
-          "items": [],
+      // انتهاء الجلسة بعد ساعة من إنشائها
+      final String expireAt = DateTime.now()
+          .add(const Duration(hours: 1))
+          .toIso8601String();
+
+      const String endpoint = "https://api.kashier.io/v3/payment/sessions";
+
+      final Map<String, dynamic> bodyData = {
+        "expireAt": expireAt,
+        "maxFailureAttempts": 3,
+        "paymentType": "credit",
+        "amount": _amount,
+        "currency": _currency,
+        "order": orderId,
+        "merchantRedirect": "https://dvr-timer-app.web.app/payment-success",
+        "display": "ar",
+        "type": "external",
+        "allowedMethods": "card,wallet",
+        "merchantId": _merchantId,
+        "failureRedirect": false,
+        "defaultMethod": "card",
+        "description": "Subscription for DVR-Timer App",
+        "manualCapture": false,
+        "customer": {
+          "email": userEmail,
+          "reference":
+              AuthController.instance.firebaseUser.value?.uid ?? orderId,
         },
-      );
-      int orderId = orderResponse.data['id'];
+        "interactionSource": "ECOMMERCE",
+        "enable3DS": true,
+      };
 
-      // 3. مرحلة توليد مفتاح الدفع المربوط بالفيزا (Payment Key Generation)
-      var keyResponse = await _dio.post(
-        "https://accept.paymob.com/api/acceptance/payment_keys",
-        data: {
-          "auth_token": authToken,
-          "amount_cents": _amountCents.toString(),
-          "expiration": 3600,
-          "order_id": orderId.toString(),
-          "billing_data": {
-            "first_name": "User",
-            "last_name": "App",
-            "email":
-                AuthController.instance.firebaseUser.value?.email ??
-                "test@test.com",
-            "phone_number": "+201000000000",
-            "apartment": "NA",
-            "floor": "NA",
-            "street": "NA",
-            "building": "NA",
-            "shipping_method": "NA",
-            "postal_code": "NA",
-            "city": "NA",
-            "country": "EG",
-            "state": "NA",
+      final response = await _dio.post(
+        endpoint,
+        data: bodyData,
+        options: Options(
+          headers: {
+            'Authorization': _secretKey,
+            'api-key': _paymentApiKey,
+            'Content-Type': 'application/json',
           },
-          "currency": "EGP",
-          "integration_id": _integrationIdVisa,
-        },
+        ),
       );
 
-      return keyResponse.data['token'];
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final String? sessionUrl = response.data['sessionUrl'];
+        debugPrint("✅ Session Created Successfully: $sessionUrl");
+        return sessionUrl;
+      } else {
+        debugPrint("🚨 Failed to create session: ${response.data}");
+        return null;
+      }
     } on DioException catch (e) {
-      print("🚨🚨 Paymob Live Error Info 🚨🚨");
-      print("Status Code: ${e.response?.statusCode}");
-      print("Error Data: ${e.response?.data}");
-      print("🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨");
-
+      debugPrint("🚨 Kashier API Error: ${e.response?.data}");
       Get.snackbar(
-        "رفض من بوابة الدفع",
-        "حدث خطأ أثناء الاتصال بالبوابة، كود الخطأ: ${e.response?.statusCode}",
-        duration: const Duration(seconds: 5),
+        "خطأ في الاتصال",
+        "فشل تجهيز جلسة الدفع، برجاء المحاولة لاحقاً.",
         backgroundColor: Colors.red.shade800,
         colorText: Colors.white,
       );
       return null;
     } catch (e) {
-      print("🚨 General Error: $e");
+      debugPrint("🚨 Unexpected Error: $e");
       return null;
     }
   }
