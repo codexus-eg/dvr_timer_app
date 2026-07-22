@@ -51,7 +51,6 @@ class DvrCalculatorScreen extends StatelessWidget {
               child: SafeArea(
                 child: Column(
                   children: [
-                    // تم تصحيح اسم الاستدعاء هنا ليطابق الدالة تحت
                     _buildSubscriptionBanner(
                       isAr,
                       isSubscribed,
@@ -101,13 +100,7 @@ class DvrCalculatorScreen extends StatelessWidget {
                                       ),
                                       tooltip: calcController.texts['logout'],
                                     ),
-                                    Image.asset(
-                                      'assets/images/logo.png',
-                                      width: 60,
-                                      height: 60,
-                                      errorBuilder: (c, e, s) =>
-                                          const SizedBox(),
-                                    ),
+                                    // ❌ تم إزالة صورة الكاميرا من هنا
                                     ElevatedButton.icon(
                                       onPressed: () =>
                                           calcController.toggleLanguage(),
@@ -174,7 +167,7 @@ class DvrCalculatorScreen extends StatelessWidget {
                                             children: [
                                               Text(
                                                 DateFormat(
-                                                  'yyyy-MM-dd   hh:mm a',
+                                                  'yyyy-MM-dd   hh:mm:ss a',
                                                 ).format(
                                                   calcController
                                                       .currentTime
@@ -322,8 +315,34 @@ class DvrCalculatorScreen extends StatelessWidget {
     String userId,
   ) {
     if (isSubscribed) {
-      return const SizedBox.shrink();
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        color: Colors.green.shade600,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              isAr
+                  ? 'اشتراكك مفعل: باقي $daysLeft يوماً'
+                  : 'Active Subscription: $daysLeft days left',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      );
     }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -497,12 +516,14 @@ class DvrCalculatorScreen extends StatelessWidget {
         initialTime: TimeOfDay.fromDateTime(calcController.currentTime.value),
       );
       if (pickedTime != null) {
-        calcController.currentTime.value = DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
-          pickedTime.hour,
-          pickedTime.minute,
+        calcController.updateCurrentTimeManually(
+          DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          ),
         );
       }
     }

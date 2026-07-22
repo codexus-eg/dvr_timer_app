@@ -27,7 +27,8 @@ class AuthGate extends StatelessWidget {
       if (authController.activeSubscription) {
         return DvrCalculatorScreen(
           isSubscribed: true,
-          daysLeft: 0,
+          // ✅ تم التعديل هنا لقراءة أيام الاشتراك الفعلي
+          daysLeft: authController.subscriptionDaysLeft,
           userId: user.uid,
         );
       }

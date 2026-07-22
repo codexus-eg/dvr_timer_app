@@ -110,6 +110,132 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ✅ نافذة إعادة تعيين كلمة المرور
+  void _showResetPasswordDialog() {
+    final TextEditingController resetEmailController = TextEditingController();
+
+    // لو العميل كاتب إيميل في الشاشة الرئيسية ناخده له جاهز
+    if (emailController.text.isNotEmpty && emailController.text.contains('@')) {
+      resetEmailController.text = emailController.text;
+    }
+
+    Get.dialog(
+      Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.lock_reset_rounded,
+                size: 60,
+                color: Colors.blue.shade800,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'نسيت كلمة المرور؟',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'أدخل بريدك الإلكتروني المسجل لدينا وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: resetEmailController,
+                keyboardType: TextInputType.emailAddress,
+                textDirection: TextDirection.ltr,
+                decoration: InputDecoration(
+                  labelText: 'البريد الإلكتروني',
+                  prefixIcon: Icon(
+                    Icons.email_outlined,
+                    color: Colors.blue.shade700,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Get.back(),
+                      child: Text(
+                        'إلغاء',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: Obx(
+                      () => ElevatedButton(
+                        onPressed: authController.isLoading.value
+                            ? null
+                            : () => authController.resetPassword(
+                                resetEmailController.text,
+                              ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: authController.isLoading.value
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'إرسال الرابط',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
   @override
   void dispose() {
     emailController.dispose();
@@ -195,6 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Form(
                           key: formKey,
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               TextFormField(
                                 controller: emailController,
@@ -265,7 +392,39 @@ class _LoginScreenState extends State<LoginScreen> {
                                   return null;
                                 },
                               ),
-                              const SizedBox(height: 30),
+
+                              // ✅ زرار نسيت كلمة المرور (يظهر فقط في حالة تسجيل الدخول)
+                              if (authController.isLoginMode.value)
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextButton(
+                                    onPressed: _showResetPasswordDialog,
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: Text(
+                                      'هل نسيت كلمة المرور؟',
+                                      style: TextStyle(
+                                        color: Colors.blue.shade700,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              SizedBox(
+                                height: authController.isLoginMode.value
+                                    ? 20
+                                    : 30,
+                              ),
+
                               SizedBox(
                                 width: double.infinity,
                                 height: 55,
@@ -273,15 +432,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onPressed: authController.isLoading.value
                                       ? null
                                       : () {
-                                          authController.submitEmailAuth(
-                                            emailController.text,
-                                            passwordController.text,
-                                            () => _showVerificationDialog(
-                                              emailController.text
-                                                  .trim()
-                                                  .toLowerCase(),
-                                            ),
-                                          );
+                                          if (formKey.currentState!
+                                              .validate()) {
+                                            authController.submitEmailAuth(
+                                              emailController.text,
+                                              passwordController.text,
+                                              () => _showVerificationDialog(
+                                                emailController.text
+                                                    .trim()
+                                                    .toLowerCase(),
+                                              ),
+                                            );
+                                          }
                                         },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.blueAccent.shade700,

@@ -1,3 +1,4 @@
+import 'dart:async'; // 👈 مهم عشان العداد (Timer)
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -12,22 +13,46 @@ class CalculatorController extends GetxController {
   RxnString differenceTypeResult = RxnString();
   RxnString errorMessage = RxnString();
 
+  Timer? _timer;
+  bool isManualTime = false;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _startLiveTimer();
+  }
+
+  @override
+  void onClose() {
+    _timer?.cancel(); // 👈 إيقاف العداد عند الخروج من الصفحة
+    super.onClose();
+  }
+
+  // 👈 دالة لتشغيل الوقت اللحظي
+  void _startLiveTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!isManualTime) {
+        currentTime.value = DateTime.now();
+      }
+    });
+  }
+
   Map<String, String> get texts => {
     'mainTitle': isArabic.value
         ? 'حساب فرق توقيت أجهزة التسجيل'
         : 'Calculate DVR Time Difference',
     'step1': isArabic.value
-        ? 'خطوة (1) الساعة والتاريخ الآن'
+        ? ' الساعة والتاريخ الآن'
         : 'Step 1: Current Date and Time',
     'refresh': isArabic.value ? 'تحديث' : 'Refresh',
     'note': isArabic.value
         ? 'ملحوظة: ضبط التوقيت يدوياً إذا اختلف.'
         : 'Note: Adjust manually if it differs.',
     'step2': isArabic.value
-        ? 'خطوة (2) وقت جهاز التسجيل الحالي'
+        ? ' خطوة (1) وقت جهاز التسجيل الحالي (DVR)'
         : 'Step 2: DVR Current Time',
     'step3': isArabic.value
-        ? 'خطوة (3) وقت الحدث الفعلي'
+        ? 'خطوة (2) وقت الحدث الفعلي'
         : 'Step 3: Actual Event Time',
     'reset': isArabic.value ? 'إعادة تعيين' : 'Reset',
     'calculate': isArabic.value ? 'حساب الفرق' : 'Calculate Difference',
@@ -53,7 +78,17 @@ class CalculatorController extends GetxController {
     resetForm();
   }
 
-  void refreshCurrentTime() => currentTime.value = DateTime.now();
+  // 👈 دالة زر التحديث هترجع تشغل الوقت اللحظي تاني
+  void refreshCurrentTime() {
+    isManualTime = false;
+    currentTime.value = DateTime.now();
+  }
+
+  // 👈 دالة جديدة عشان لو العميل عدل الوقت بنفسه نوقف التحديث اللحظي
+  void updateCurrentTimeManually(DateTime newTime) {
+    isManualTime = true;
+    currentTime.value = newTime;
+  }
 
   void resetForm() {
     dvrTime.value = null;

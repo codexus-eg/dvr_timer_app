@@ -100,7 +100,15 @@ class AuthController extends GetxController {
     return false;
   }
 
-  // ✅ تم التعديل هنا لتصبح 14 يوم بدل 7
+  int get subscriptionDaysLeft {
+    final endDate = userData['subscriptionEndDate'];
+    if (endDate != null && endDate is Timestamp) {
+      int left = endDate.toDate().difference(DateTime.now()).inDays;
+      return left < 0 ? 0 : left;
+    }
+    return 0;
+  }
+
   int get daysLeft {
     final createdAt = userData['createdAt'];
     if (createdAt == null) return 14;
@@ -166,6 +174,46 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       Get.snackbar('تنبيه', 'خطأ في المصادقة: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ✅ الدالة الجديدة الخاصة بإرسال رابط إعادة تعيين كلمة المرور
+  Future<void> resetPassword(String email) async {
+    if (email.isEmpty || !email.contains('@')) {
+      Get.snackbar(
+        'تنبيه',
+        'يرجى إدخال بريد إلكتروني صحيح أولاً.',
+        backgroundColor: Colors.orange.shade700,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    try {
+      isLoading.value = true;
+      await _auth.sendPasswordResetEmail(email: email.trim());
+
+      // إغلاق النافذة المنبثقة لو كانت مفتوحة
+      if (Get.isDialogOpen == true || Get.isBottomSheetOpen == true) {
+        Get.back();
+      }
+
+      Get.snackbar(
+        'تم بنجاح',
+        'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.',
+        backgroundColor: Colors.green.shade700,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 5),
+      );
+    } catch (e) {
+      debugPrint("🚨 Reset Password Error: $e");
+      Get.snackbar(
+        'خطأ',
+        'فشل إرسال الرابط. تأكد من صحة البريد الإلكتروني أو حاول لاحقاً.',
+        backgroundColor: Colors.red.shade800,
+        colorText: Colors.white,
+      );
     } finally {
       isLoading.value = false;
     }
