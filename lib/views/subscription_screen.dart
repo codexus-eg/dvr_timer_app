@@ -8,6 +8,7 @@ class SubscriptionScreen extends StatelessWidget {
   final bool showTrialOption;
   final PaymentController paymentController = Get.put(PaymentController());
   final RxBool isLoading = false.obs;
+  final Rx<SubscriptionPlan> selectedPlan = SubscriptionPlan.yearly.obs;
 
   SubscriptionScreen({super.key, required this.showTrialOption});
 
@@ -31,7 +32,7 @@ class SubscriptionScreen extends StatelessWidget {
           child: SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(28.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -39,89 +40,67 @@ class SubscriptionScreen extends StatelessWidget {
                       showTrialOption
                           ? Icons.rocket_launch_rounded
                           : Icons.lock_clock_rounded,
-                      size: 80,
+                      size: 70,
                       color: Colors.amber.shade600,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
                       showTrialOption
                           ? 'مرحباً بك في DVR-Timer!'
                           : 'انتهى الاشتراك أو الفترة التجريبية!',
                       style: const TextStyle(
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
+                    // ✅ تم التعديل هنا في النص
                     Text(
                       showTrialOption
-                          ? 'اختر باقتك الآن للبدء، أو جرب التطبيق مجاناً لمدة 7 أيام.'
-                          : 'للاستمرار في استخدام التطبيق بكامل ميزاته، يرجى تفعيل أو تجديد الاشتراك الشهري.',
+                          ? 'اختر باقتك الآن للبدء، أو جرب التطبيق مجاناً لمدة 14 يوماً.'
+                          : 'للاستمرار في استخدام التطبيق بكامل ميزاته، يرجى تفعيل أو تجديد الاشتراك.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         color: Colors.white70,
-                        height: 1.5,
+                        height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
-                    // كارت تفاصيل الباقة
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white24, width: 1.5),
-                      ),
-                      child: Column(
+                    // اختيار الباقة (شهرية / سنوية)
+                    Obx(() {
+                      final mPrice = paymentController.monthlyPrice.value
+                          .toInt();
+                      final yPrice = paymentController.yearlyPrice.value
+                          .toInt();
+
+                      return Column(
                         children: [
-                          const Text(
-                            'الباقة الشهرية الكاملة',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber,
-                            ),
+                          _buildPlanCard(
+                            title: 'الباقة السنوية',
+                            priceText: '$yPrice',
+                            subText: 'جنيه / سنوياً',
+                            badgeText: 'توفير لأكثر من شهرين 🔥',
+                            plan: SubscriptionPlan.yearly,
+                            isRecommended: true,
                           ),
-                          const SizedBox(height: 12),
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '50',
-                                style: TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'جنيه / شهرياً',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: 14),
+                          _buildPlanCard(
+                            title: 'الباقة الشهرية',
+                            priceText: '$mPrice',
+                            subText: 'جنيه / شهرياً',
+                            plan: SubscriptionPlan.monthly,
                           ),
-                          const Divider(color: Colors.white24, height: 30),
-                          _buildFeatureRow(
-                            'حساب توقيت أجهزة الـ DVR بدقة متناهية.',
-                          ),
-                          _buildFeatureRow('تحديثات مستمرة ودعم فني متواصل.'),
-                          _buildFeatureRow('بدون أي إعلانات مزعجة.'),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 36),
+                      );
+                    }),
+
+                    const SizedBox(height: 28),
 
                     // زرار الاشتراك الإلكتروني
-                    // استبدل جزء زرار الاشتراك بالـ Obx المحدث ده:
                     Obx(
                       () => SizedBox(
                         width: double.infinity,
@@ -133,7 +112,9 @@ class SubscriptionScreen extends StatelessWidget {
                                   isLoading.value = true;
                                   final String? sessionUrl =
                                       await paymentController
-                                          .createPaymentSession();
+                                          .createPaymentSession(
+                                            selectedPlan.value,
+                                          );
                                   isLoading.value = false;
 
                                   if (sessionUrl != null &&
@@ -165,7 +146,9 @@ class SubscriptionScreen extends StatelessWidget {
                           label: Text(
                             isLoading.value
                                 ? 'جاري تجهيز بوابة الدفع...'
-                                : 'اشترك الآن وفعل التطبيق',
+                                : selectedPlan.value == SubscriptionPlan.yearly
+                                ? 'اشترك في الباقة السنوية الآن'
+                                : 'اشترك في الباقة الشهرية الآن',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -184,25 +167,26 @@ class SubscriptionScreen extends StatelessWidget {
 
                     // زرار الفترة التجريبية
                     if (showTrialOption) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       SizedBox(
                         width: double.infinity,
-                        height: 55,
+                        height: 52,
                         child: OutlinedButton(
                           onPressed: () => authController.startTrial(),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(
                               color: Colors.white54,
-                              width: 2,
+                              width: 1.5,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
+                          // ✅ تم التعديل هنا لتصبح 14 يوم
                           child: const Text(
-                            'بدء الفترة التجريبية المجانية (7 أيام)',
+                            'بدء الفترة التجريبية المجانية (14 يوم)',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -211,11 +195,15 @@ class SubscriptionScreen extends StatelessWidget {
                       ),
                     ],
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     // زرار تسجيل الخروج
                     TextButton.icon(
                       onPressed: () => authController.signOut(),
-                      icon: const Icon(Icons.logout, color: Colors.white70),
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
                       label: const Text(
                         'تسجيل الخروج',
                         style: TextStyle(
@@ -234,25 +222,133 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureRow(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.check_circle_outline_rounded,
-            color: Colors.greenAccent,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+  Widget _buildPlanCard({
+    required String title,
+    required String priceText,
+    required String subText,
+    required SubscriptionPlan plan,
+    String? badgeText,
+    bool isRecommended = false,
+  }) {
+    return Obx(() {
+      final isSelected = selectedPlan.value == plan;
+
+      return GestureDetector(
+        onTap: () => selectedPlan.value = plan,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Colors.amber.shade600.withValues(alpha: 0.15)
+                : Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? Colors.amber.shade600 : Colors.white24,
+              width: isSelected ? 2.5 : 1,
             ),
           ),
-        ],
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Row(
+                children: [
+                  _buildRadioIndicator(isSelected),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? Colors.amber : Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              priceText,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              subText,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (badgeText != null)
+                Positioned(
+                  top: -24,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade700,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  /// مؤشر دائري مخصص للاختيار
+  Widget _buildRadioIndicator(bool isSelected) {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isSelected ? Colors.amber.shade600 : Colors.white54,
+          width: 2,
+        ),
       ),
+      child: isSelected
+          ? Center(
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.amber.shade600,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

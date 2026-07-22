@@ -1,10 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'auth_controller.dart';
 
+enum SubscriptionPlan { monthly, yearly }
+
 class PaymentController extends GetxController {
   final Dio _dio = Dio();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // بيانات كاشير الحية
   final String _merchantId = "MID-10201-314";
@@ -12,18 +16,54 @@ class PaymentController extends GetxController {
   final String _secretKey =
       "d5388953d5a65b43f3d9c5b8b5f501fc\$a66a1d554769ea9ab62d17d6c76d658675ccea752650133a32ebdf8fd54fa46242d3be008b44c16eede8bb90ae639a42";
 
-  final String _amount = "50.00"; // المبلغ بالتنسيق المطلوب
   final String _currency = "EGP";
 
-  /// إنشاء جلسة دفع جديدة والحصول على sessionUrl المباشر
-  Future<String?> createPaymentSession() async {
+  // أسعار الباقات الافتراضية مع إمكانية التحديث الديناميكي
+  RxDouble monthlyPrice = 50.0.obs;
+  RxDouble yearlyPrice = 400.0.obs;
+  RxBool isFetchingPrices = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchPricesFromFirebase();
+  }
+
+  /// جلب الأسعار مباشرة من Firestore للتحكم بها بدون تحديث التطبيق
+  Future<void> fetchPricesFromFirebase() async {
     try {
-      final String orderId = "DVR_${DateTime.now().millisecondsSinceEpoch}";
+      isFetchingPrices.value = true;
+      final doc = await _db.collection('settings').doc('pricing').get();
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+
+        // تحويل القيمة سواء كانت String أو num
+        monthlyPrice.value =
+            double.tryParse(data['monthlyPrice'].toString()) ?? 50.0;
+        yearlyPrice.value =
+            double.tryParse(data['yearlyPrice'].toString()) ?? 400.0;
+      }
+    } catch (e) {
+      debugPrint("⚠️ Failed to fetch pricing config: $e");
+    } finally {
+      isFetchingPrices.value = false;
+    }
+  }
+
+  /// إنشاء جلسة دفع بناءً على الباقة المختارة
+  Future<String?> createPaymentSession(SubscriptionPlan plan) async {
+    try {
+      final double selectedPrice = plan == SubscriptionPlan.monthly
+          ? monthlyPrice.value
+          : yearlyPrice.value;
+      final String amountStr = selectedPrice.toStringAsFixed(2);
+
+      final String orderId =
+          "DVR_${plan == SubscriptionPlan.yearly ? 'YR' : 'MO'}_${DateTime.now().millisecondsSinceEpoch}";
       final String userEmail =
           AuthController.instance.firebaseUser.value?.email ??
           "customer@dvr-timer.com";
 
-      // انتهاء الجلسة بعد ساعة من إنشائها
       final String expireAt = DateTime.now()
           .add(const Duration(hours: 1))
           .toIso8601String();
@@ -34,7 +74,7 @@ class PaymentController extends GetxController {
         "expireAt": expireAt,
         "maxFailureAttempts": 3,
         "paymentType": "credit",
-        "amount": _amount,
+        "amount": amountStr,
         "currency": _currency,
         "order": orderId,
         "merchantRedirect": "https://dvr-timer-app.web.app/payment-success",
@@ -44,7 +84,9 @@ class PaymentController extends GetxController {
         "merchantId": _merchantId,
         "failureRedirect": false,
         "defaultMethod": "card",
-        "description": "Subscription for DVR-Timer App",
+        "description": plan == SubscriptionPlan.yearly
+            ? "Yearly Subscription for DVR-Timer App"
+            : "Monthly Subscription for DVR-Timer App",
         "manualCapture": false,
         "customer": {
           "email": userEmail,
@@ -69,7 +111,9 @@ class PaymentController extends GetxController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final String? sessionUrl = response.data['sessionUrl'];
-        debugPrint("✅ Session Created Successfully: $sessionUrl");
+        debugPrint(
+          "✅ Session Created Successfully ($amountStr EGP): $sessionUrl",
+        );
         return sessionUrl;
       } else {
         debugPrint("🚨 Failed to create session: ${response.data}");
