@@ -83,7 +83,7 @@ class SubscriptionScreen extends StatelessWidget {
                             title: 'الباقة السنوية',
                             priceText: '$yPrice',
                             subText: 'جنيه / سنوياً',
-                            badgeText: 'توفير لأكثر من شهرين 🔥',
+                            badgeText: ' احصل على خصم ٣٣%🔥',
                             plan: SubscriptionPlan.yearly,
                             isRecommended: true,
                           ),

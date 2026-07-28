@@ -71,13 +71,8 @@ class AuthController extends GetxController {
           else {
             userData.clear();
             await _auth.signOut();
-            Get.snackbar(
-              'تنبيه الأمان',
+            _showErrorSnackbar(
               'هذا الحساب مرتبط بجهاز آخر بالفعل. لا يمكنك استخدام الحساب إلا من جهازك الأساسي.',
-              backgroundColor: Colors.red.shade800,
-              colorText: Colors.white,
-              duration: const Duration(seconds: 5),
-              snackPosition: SnackPosition.BOTTOM,
             );
           }
         } else {
@@ -172,22 +167,20 @@ class AuthController extends GetxController {
         isLoginMode.value = true;
         onVerificationSent();
       }
+    } on FirebaseAuthException catch (e) {
+      // اصطياد أخطاء الفايربيز وترجمتها
+      _showErrorSnackbar(_getFriendlyErrorMessage(e.code));
     } catch (e) {
-      Get.snackbar('تنبيه', 'خطأ في المصادقة: $e');
+      _showErrorSnackbar('حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.');
     } finally {
       isLoading.value = false;
     }
   }
 
-  // ✅ الدالة الجديدة الخاصة بإرسال رابط إعادة تعيين كلمة المرور
+  // ✅ الدالة الخاصة بإرسال رابط إعادة تعيين كلمة المرور
   Future<void> resetPassword(String email) async {
     if (email.isEmpty || !email.contains('@')) {
-      Get.snackbar(
-        'تنبيه',
-        'يرجى إدخال بريد إلكتروني صحيح أولاً.',
-        backgroundColor: Colors.orange.shade700,
-        colorText: Colors.white,
-      );
+      _showErrorSnackbar('يرجى إدخال بريد إلكتروني صحيح أولاً.');
       return;
     }
     try {
@@ -199,20 +192,16 @@ class AuthController extends GetxController {
         Get.back();
       }
 
-      Get.snackbar(
+      _showSuccessSnackbar(
         'تم بنجاح',
         'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.',
-        backgroundColor: Colors.green.shade700,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 5),
       );
+    } on FirebaseAuthException catch (e) {
+      _showErrorSnackbar(_getFriendlyErrorMessage(e.code));
     } catch (e) {
       debugPrint("🚨 Reset Password Error: $e");
-      Get.snackbar(
-        'خطأ',
+      _showErrorSnackbar(
         'فشل إرسال الرابط. تأكد من صحة البريد الإلكتروني أو حاول لاحقاً.',
-        backgroundColor: Colors.red.shade800,
-        colorText: Colors.white,
       );
     } finally {
       isLoading.value = false;
@@ -237,10 +226,12 @@ class AuthController extends GetxController {
 
       // 4. تسجيل الدخول
       await _auth.signInWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      _showErrorSnackbar(_getFriendlyErrorMessage(e.code));
     } catch (e) {
       debugPrint("🚨 Google Native Sign In Error: $e");
       if (!e.toString().contains('canceled')) {
-        Get.snackbar('خطأ', 'فشل الاتصال بجوجل');
+        _showErrorSnackbar('فشل الاتصال بجوجل، يرجى المحاولة لاحقاً.');
       }
     } finally {
       isLoading.value = false;
@@ -252,5 +243,72 @@ class AuthController extends GetxController {
       await _googleSignIn.signOut();
     } catch (_) {}
     await _auth.signOut();
+  }
+
+  // -------------------------------------------------------------
+  // ✨ دوال مساعدة لترجمة الأخطاء وعرض الإشعارات بشكل شيك
+  // -------------------------------------------------------------
+
+  /// دالة لترجمة أكواد أخطاء Firebase إلى رسائل عربية صديقة للمستخدم
+  String _getFriendlyErrorMessage(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'هذا البريد الإلكتروني مسجل لدينا بالفعل، يمكنك تسجيل الدخول مباشرة.';
+      case 'user-not-found':
+        return 'لا يوجد حساب مسجل بهذا البريد الإلكتروني، يرجى إنشاء حساب جديد.';
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'البريد الإلكتروني أو كلمة المرور غير صحيحة، يرجى المحاولة مجدداً.';
+      case 'invalid-email':
+        return 'صيغة البريد الإلكتروني غير صحيحة.';
+      case 'user-disabled':
+        return 'تم إيقاف هذا الحساب من قبل الإدارة.';
+      case 'too-many-requests':
+        return 'تم حظر الحساب مؤقتاً بسبب كثرة المحاولات الخاطئة، جرب لاحقاً أو قم باستعادة كلمة المرور.';
+      case 'network-request-failed':
+        return 'تأكد من اتصالك بالإنترنت والمحاولة مجدداً.';
+      case 'operation-not-allowed':
+        return 'طريقة تسجيل الدخول هذه غير مفعلة حالياً.';
+      default:
+        return 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.';
+    }
+  }
+
+  /// دالة مخصصة لعرض أخطاء العمليات بتصميم احترافي (Snackbar أحمر)
+  void _showErrorSnackbar(String message) {
+    Get.snackbar(
+      'تنبيه',
+      message,
+      backgroundColor: Colors.red.shade800,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      borderRadius: 16,
+      icon: const Icon(
+        Icons.error_outline_rounded,
+        color: Colors.white,
+        size: 28,
+      ),
+      duration: const Duration(seconds: 4),
+      forwardAnimationCurve: Curves.easeOutBack,
+    );
+  }
+
+  /// دالة مخصصة لعرض رسائل النجاح بتصميم احترافي (Snackbar أخضر)
+  void _showSuccessSnackbar(String title, String message) {
+    Get.snackbar(
+      title,
+      message,
+      backgroundColor: Colors.green.shade700,
+      colorText: Colors.white,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 16,
+      icon: const Icon(
+        Icons.check_circle_outline,
+        color: Colors.white,
+        size: 28,
+      ),
+      duration: const Duration(seconds: 5),
+    );
   }
 }
