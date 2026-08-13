@@ -104,13 +104,14 @@ class AuthController extends GetxController {
     return 0;
   }
 
+  // ✅ تم التعديل هنا لتصبح 120 يوم (4 شهور) بدل 14
   int get daysLeft {
     final createdAt = userData['createdAt'];
-    if (createdAt == null) return 14;
+    if (createdAt == null) return 120;
     int daysUsed = DateTime.now()
         .difference((createdAt as Timestamp).toDate())
         .inDays;
-    int left = 14 - daysUsed;
+    int left = 120 - daysUsed;
     return left <= 0 ? 0 : left;
   }
 

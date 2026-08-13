@@ -182,9 +182,9 @@ class SubscriptionScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          // ✅ تم التعديل هنا لتصبح 14 يوم
+                          // ✅ تم التعديل هنا لتصبح 120 يوم
                           child: const Text(
-                            'بدء الفترة التجريبية المجانية (14 يوم)',
+                            'تفعيل البرنامج 4 شهور مجانا',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
