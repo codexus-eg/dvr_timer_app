@@ -1,0 +1,58 @@
+workflows:
+  dvr-timer-ios-testflight-workflow:
+    name: DVR Timer iOS Build and Publish to TestFlight
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+
+    integrations:
+      # نفس الـ integration المربوط بحسابك
+      app_store_connect: noourway
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+      ios_signing:
+        provisioning_profiles:
+          - dvr_timer_Manual_Profile # اسم البروفايل الجديد الخاص بالتطبيق
+        certificates:
+          - ios_cert_manual # نفس شهادة المطور المعتمدة
+
+    scripts:
+      - name: Set iOS deployment target
+        script: |
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/g' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Clean and Get Dependencies
+        script: |
+          flutter clean
+          flutter pub upgrade
+          cd ios
+          rm -rf Pods
+          rm -rf Podfile.lock
+          pod repo update
+          pod install
+
+      - name: Apply Vault Profiles
+        script: xcode-project use-profiles
+
+      - name: Force Remove Alpha Channel from iOS Icons
+        script: |
+          brew install imagemagick
+          find ios/Runner/Assets.xcassets/AppIcon.appiconset -name "*.png" -exec mogrify -alpha off {} \;
+
+      - name: Build IPA
+        script: |
+          flutter build ipa --release --export-options-plist=$HOME/export_options.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+      email:
+        recipients:
+          - codexus.eg@gmail.com
