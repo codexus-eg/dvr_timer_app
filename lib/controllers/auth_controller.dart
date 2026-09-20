@@ -12,7 +12,6 @@ class AuthController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Web Client ID من Firebase Console / google-services.json
   static const String _webClientId =
       '211339829221-esc2as8u9ooipilph9dv92j81vva5qd5.apps.googleusercontent.com';
 
@@ -27,15 +26,11 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-
-    // تهيئة serverClientId مسبقاً لمنع خطأ clientConfigurationError على أندرويد
     _googleSignIn.initialize(serverClientId: _webClientId);
-
     firebaseUser.bindStream(_auth.userChanges());
     ever(firebaseUser, _bindFirestoreUser);
   }
 
-  /// جلب المعرف الفريد للجهاز الحالي
   Future<String> _getDeviceId() async {
     final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
     if (Platform.isAndroid) {
@@ -56,19 +51,14 @@ class AuthController extends GetxController {
           final String currentDeviceId = await _getDeviceId();
           final String? savedDeviceId = data['deviceId'];
 
-          // 1. إذا لم يكن هناك جهاز مسجل بعد، يتم تسجيل الجهاز الحالي كجهاز أساسي
           if (savedDeviceId == null || savedDeviceId.isEmpty) {
             await _db.collection('users').doc(user.uid).update({
               'deviceId': currentDeviceId,
             });
             userData.assignAll(data);
-          }
-          // 2. إذا كان الجهاز الحالي هو الجهاز المسجل
-          else if (savedDeviceId == currentDeviceId) {
+          } else if (savedDeviceId == currentDeviceId) {
             userData.assignAll(data);
-          }
-          // 3. إذا حاول الدخول من جهاز جديد
-          else {
+          } else {
             userData.clear();
             await _auth.signOut();
             _showErrorSnackbar(
@@ -86,7 +76,6 @@ class AuthController extends GetxController {
   }
 
   bool get trialStarted => userData['trialStarted'] ?? false;
-
   bool get activeSubscription {
     final endDate = userData['subscriptionEndDate'];
     if (endDate != null && endDate is Timestamp) {
@@ -104,7 +93,6 @@ class AuthController extends GetxController {
     return 0;
   }
 
-  // ✅ تم التعديل هنا لتصبح 120 يوم (4 شهور) بدل 14
   int get daysLeft {
     final createdAt = userData['createdAt'];
     if (createdAt == null) return 120;
@@ -169,7 +157,6 @@ class AuthController extends GetxController {
         onVerificationSent();
       }
     } on FirebaseAuthException catch (e) {
-      // اصطياد أخطاء الفايربيز وترجمتها
       _showErrorSnackbar(_getFriendlyErrorMessage(e.code));
     } catch (e) {
       _showErrorSnackbar('حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.');
@@ -178,7 +165,6 @@ class AuthController extends GetxController {
     }
   }
 
-  // ✅ الدالة الخاصة بإرسال رابط إعادة تعيين كلمة المرور
   Future<void> resetPassword(String email) async {
     if (email.isEmpty || !email.contains('@')) {
       _showErrorSnackbar('يرجى إدخال بريد إلكتروني صحيح أولاً.');
@@ -187,12 +173,9 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
       await _auth.sendPasswordResetEmail(email: email.trim());
-
-      // إغلاق النافذة المنبثقة لو كانت مفتوحة
       if (Get.isDialogOpen == true || Get.isBottomSheetOpen == true) {
         Get.back();
       }
-
       _showSuccessSnackbar(
         'تم بنجاح',
         'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.',
@@ -200,7 +183,6 @@ class AuthController extends GetxController {
     } on FirebaseAuthException catch (e) {
       _showErrorSnackbar(_getFriendlyErrorMessage(e.code));
     } catch (e) {
-      debugPrint("🚨 Reset Password Error: $e");
       _showErrorSnackbar(
         'فشل إرسال الرابط. تأكد من صحة البريد الإلكتروني أو حاول لاحقاً.',
       );
@@ -209,28 +191,21 @@ class AuthController extends GetxController {
     }
   }
 
-  /// تسجيل الدخول بـ Native Google Sign-In
   Future<void> signInWithGoogle() async {
     try {
       isLoading.value = true;
-
-      // 1. طلب المصادقة
       final googleUser = await _googleSignIn.authenticate();
 
-      // 2. استخراج التوثيق
+      // ✅ تم إزالة await وعلامة ?. بناءً على تعليمات المترجم
       final googleAuth = googleUser.authentication;
 
-      // 3. بناء الـ Credential لـ Firebase
       final AuthCredential credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
-
-      // 4. تسجيل الدخول
       await _auth.signInWithCredential(credential);
     } on FirebaseAuthException catch (e) {
       _showErrorSnackbar(_getFriendlyErrorMessage(e.code));
     } catch (e) {
-      debugPrint("🚨 Google Native Sign In Error: $e");
       if (!e.toString().contains('canceled')) {
         _showErrorSnackbar('فشل الاتصال بجوجل، يرجى المحاولة لاحقاً.');
       }
@@ -246,11 +221,49 @@ class AuthController extends GetxController {
     await _auth.signOut();
   }
 
-  // -------------------------------------------------------------
-  // ✨ دوال مساعدة لترجمة الأخطاء وعرض الإشعارات بشكل شيك
-  // -------------------------------------------------------------
+  Future<void> deleteAccount() async {
+    try {
+      isLoading.value = true;
+      final user = _auth.currentUser;
+      if (user != null) {
+        await _db.collection('users').doc(user.uid).delete();
+        await user.delete();
+        if (Get.isDialogOpen == true) Get.back();
+        _showSuccessSnackbar('تم بنجاح', 'تم حذف حسابك نهائياً.');
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        _showErrorSnackbar(
+          'لأسباب أمنية، يرجى تسجيل الخروج ثم الدخول مجدداً قبل حذف الحساب.',
+        );
+      } else {
+        _showErrorSnackbar(_getFriendlyErrorMessage(e.code));
+      }
+    } catch (e) {
+      _showErrorSnackbar('حدث خطأ أثناء محاولة حذف الحساب.');
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
-  /// دالة لترجمة أكواد أخطاء Firebase إلى رسائل عربية صديقة للمستخدم
+  // ✅ تحديث الاسم
+  Future<void> updateUserName(String newName) async {
+    if (newName.trim().isEmpty) return;
+    try {
+      isLoading.value = true;
+      await _auth.currentUser?.updateDisplayName(newName.trim());
+      await _auth.currentUser?.reload(); // جلب البيانات الجديدة
+      firebaseUser.value = _auth.currentUser;
+
+      if (Get.isDialogOpen == true) Get.back(); // إغلاق نافذة التعديل
+      _showSuccessSnackbar('تم بنجاح', 'تم تحديث الاسم.');
+    } catch (e) {
+      _showErrorSnackbar('فشل تحديث الاسم.');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   String _getFriendlyErrorMessage(String code) {
     switch (code) {
       case 'email-already-in-use':
@@ -275,7 +288,6 @@ class AuthController extends GetxController {
     }
   }
 
-  /// دالة مخصصة لعرض أخطاء العمليات بتصميم احترافي (Snackbar أحمر)
   void _showErrorSnackbar(String message) {
     Get.snackbar(
       'تنبيه',
@@ -295,7 +307,6 @@ class AuthController extends GetxController {
     );
   }
 
-  /// دالة مخصصة لعرض رسائل النجاح بتصميم احترافي (Snackbar أخضر)
   void _showSuccessSnackbar(String title, String message) {
     Get.snackbar(
       title,

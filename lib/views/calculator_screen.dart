@@ -92,15 +92,71 @@ class DvrCalculatorScreen extends StatelessWidget {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    IconButton(
-                                      onPressed: () => authController.signOut(),
-                                      icon: const Icon(
-                                        Icons.logout,
-                                        color: Colors.red,
+                                    // ✅ القائمة الجديدة المنسدلة (الثلاث شرط)
+                                    PopupMenuButton<String>(
+                                      onSelected: (value) {
+                                        if (value == 'account') {
+                                          _showAccountDialog(
+                                            authController,
+                                            isAr,
+                                          );
+                                        } else if (value == 'logout') {
+                                          authController.signOut();
+                                        }
+                                      },
+                                      icon: Icon(
+                                        Icons.menu_rounded,
+                                        size: 30,
+                                        color: Colors.blue.shade900,
                                       ),
-                                      tooltip: calcController.texts['logout'],
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      itemBuilder: (BuildContext context) =>
+                                          <PopupMenuEntry<String>>[
+                                            PopupMenuItem<String>(
+                                              value: 'account',
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.person,
+                                                    color: Colors.blue.shade700,
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Text(
+                                                    isAr
+                                                        ? 'حسابي'
+                                                        : 'My Account',
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const PopupMenuDivider(),
+                                            PopupMenuItem<String>(
+                                              value: 'logout',
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.logout,
+                                                    color: Colors.red,
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Text(
+                                                    isAr
+                                                        ? 'تسجيل الخروج'
+                                                        : 'Logout',
+                                                    style: const TextStyle(
+                                                      color: Colors.red,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                     ),
-                                    // ❌ تم إزالة صورة الكاميرا من هنا
+
                                     ElevatedButton.icon(
                                       onPressed: () =>
                                           calcController.toggleLanguage(),
@@ -308,79 +364,257 @@ class DvrCalculatorScreen extends StatelessWidget {
     });
   }
 
-  Widget _buildSubscriptionBanner(
+  // ✅ نافذة بيانات الحساب (عرض الصورة التلقائية وتعديل الاسم فقط)
+  void _showAccountDialog(AuthController authController, bool isAr) {
+    Get.dialog(
+      Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          contentPadding: const EdgeInsets.all(24),
+          backgroundColor: Colors.white,
+          content: Obx(() {
+            final user = authController.firebaseUser.value;
+            final email = user?.email ?? '';
+            final name =
+                user?.displayName ??
+                (isAr ? 'مستخدم بدون اسم' : 'Unnamed User');
+
+            // الكود يسحب صورة الحساب التلقائية مباشرة
+            final photoUrl = user?.photoURL;
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // عرض الصورة التلقائية أو أيقونة افتراضية
+                CircleAvatar(
+                  radius: 45,
+                  backgroundColor: Colors.blue.shade50,
+                  backgroundImage: photoUrl != null
+                      ? NetworkImage(photoUrl)
+                      : null,
+                  child: photoUrl == null
+                      ? Icon(
+                          Icons.person,
+                          size: 45,
+                          color: Colors.blue.shade700,
+                        )
+                      : null,
+                ),
+                const SizedBox(height: 16),
+
+                // خانة الاسم مع زر التعديل بجانبه
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () =>
+                          _showEditNameDialog(authController, name, isAr),
+                      child: Icon(
+                        Icons.edit_rounded,
+                        size: 18,
+                        color: Colors.blue.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 4),
+                Text(
+                  email,
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 30),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Get.back();
+                      _showDeleteConfirmationDialog(authController, isAr);
+                    },
+                    icon: const Icon(Icons.delete_forever, color: Colors.red),
+                    label: Text(
+                      isAr
+                          ? 'حذف الحساب نهائياً'
+                          : 'Delete Account Permanently',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Get.back(),
+                    child: Text(
+                      isAr ? 'إغلاق' : 'Close',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  // ✅ نافذة تعديل الاسم المنبثقة
+  void _showEditNameDialog(
+    AuthController authController,
+    String currentName,
     bool isAr,
-    bool isSubscribed,
-    int daysLeft,
-    String userId,
   ) {
-    if (isSubscribed) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        color: Colors.green.shade600,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.check_circle_outline,
-              color: Colors.white,
-              size: 20,
+    final TextEditingController nameController = TextEditingController(
+      text: (currentName == 'مستخدم بدون اسم' || currentName == 'Unnamed User')
+          ? ''
+          : currentName,
+    );
+
+    Get.dialog(
+      Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          backgroundColor: Colors.white,
+          title: Text(isAr ? 'تعديل الاسم' : 'Edit Name'),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(
+              hintText: isAr ? 'أدخل اسمك هنا' : 'Enter your name',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
             ),
-            const SizedBox(width: 8),
-            Text(
-              isAr
-                  ? 'اشتراكك مفعل: باقي $daysLeft يوماً'
-                  : 'Active Subscription: $daysLeft days left',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: Text(
+                isAr ? 'إلغاء' : 'Cancel',
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+            ),
+            Obx(
+              () => ElevatedButton(
+                onPressed: authController.isLoading.value
+                    ? null
+                    : () => authController.updateUserName(nameController.text),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: authController.isLoading.value
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(isAr ? 'حفظ' : 'Save'),
               ),
             ),
           ],
         ),
-      );
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: Colors.amber.shade700,
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, color: Colors.white, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              isAr
-                  ? 'باقي $daysLeft أيام في الفترة التجريبية'
-                  : '$daysLeft days left in free trial',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                Get.to(() => SubscriptionScreen(showTrialOption: false)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.amber.shade900,
-              minimumSize: const Size(0, 30),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              isAr ? 'ترقية' : 'Upgrade',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-          ),
-        ],
       ),
+    );
+  }
+
+  // ✅ نافذة تأكيد حذف الحساب
+  void _showDeleteConfirmationDialog(AuthController authController, bool isAr) {
+    Get.dialog(
+      Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              const Icon(Icons.warning_rounded, color: Colors.red, size: 28),
+              const SizedBox(width: 10),
+              Text(isAr ? 'تحذير هام!' : 'Warning!'),
+            ],
+          ),
+          content: Text(
+            isAr
+                ? 'هل أنت متأكد أنك تريد حذف الحساب نهائياً؟\nهذا الإجراء سيؤدي إلى مسح كل بياناتك ولا يمكن التراجع عنه.'
+                : 'Are you sure you want to delete your account permanently?\nThis action cannot be undone.',
+            style: const TextStyle(fontSize: 15, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: Text(
+                isAr ? 'إلغاء' : 'Cancel',
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Obx(
+              () => ElevatedButton(
+                onPressed: authController.isLoading.value
+                    ? null
+                    : () => authController.deleteAccount(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: authController.isLoading.value
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        isAr ? 'موافق' : 'Confirm',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      barrierDismissible: false,
     );
   }
 
@@ -580,6 +814,84 @@ class DvrCalculatorScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(calcController.texts['exit']!),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ تم إضافة سطر التجاهل حتى لا يطلب المترجم حذف الدالة
+  // ignore: unused_element
+  Widget _buildSubscriptionBanner(
+    bool isAr,
+    bool isSubscribed,
+    int daysLeft,
+    String userId,
+  ) {
+    if (isSubscribed) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        color: Colors.green.shade600,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              isAr
+                  ? 'اشتراكك مفعل: باقي $daysLeft يوماً'
+                  : 'Active Subscription: $daysLeft days left',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: Colors.amber.shade700,
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.white, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              isAr
+                  ? 'باقي $daysLeft أيام في الفترة التجريبية'
+                  : '$daysLeft days left in free trial',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () =>
+                Get.to(() => SubscriptionScreen(showTrialOption: false)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.amber.shade900,
+              minimumSize: const Size(0, 30),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              isAr ? 'ترقية' : 'Upgrade',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
           ),
         ],
       ),
