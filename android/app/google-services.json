@@ -22,11 +22,35 @@
           }
         },
         {
+          "client_id": "211339829221-6cc2m9hv4544ulc2c3mba0ggemd4mui5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dvrtime.codexus",
+            "certificate_hash": "9f18b15503b0df2d04dc7cfd03070825f8f335b3"
+          }
+        },
+        {
           "client_id": "211339829221-b3u3ii753f8if1nklepavkq1gfnj7e2f.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.dvrtime.codexus",
             "certificate_hash": "1773b7408480a8bbe1e7bb233b6b1d2bac4a8224"
+          }
+        },
+        {
+          "client_id": "211339829221-e4sntc9e6i5gofn7m9i9hpm1bu478c1t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dvrtime.codexus",
+            "certificate_hash": "650217befef01d06350330442c61d67470a3caab"
+          }
+        },
+        {
+          "client_id": "211339829221-j0i990njdjrmp7k4armcvemqkg0vdedj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dvrtime.codexus",
+            "certificate_hash": "6785888ecf6a370a53eb59e8f061b15595165e3f"
           }
         },
         {

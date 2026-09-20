@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -28,15 +25,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -56,14 +47,44 @@ class DefaultFirebaseOptions {
     projectId: 'dvr-timer',
     storageBucket: 'dvr-timer.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBVR1Y7SDeDn1rHrgq5vHPruSQFwZ4RiCo',
     appId: '1:211339829221:ios:ca3b3735581914090c590c',
     messagingSenderId: '211339829221',
     projectId: 'dvr-timer',
     storageBucket: 'dvr-timer.firebasestorage.app',
+    androidClientId: '211339829221-0jnq5rq80i74cp4rcgm6euk2i33oagv0.apps.googleusercontent.com',
     iosClientId: '211339829221-mfhee0p31n7sr04ufktnmd0q66t68qcq.apps.googleusercontent.com',
     iosBundleId: 'com.dvrtime.codexus',
+  );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyC1dcr-CflG7jOu67E_4axbhWGyjNkvxEc',
+    appId: '1:211339829221:web:f910699ee2ca266c0c590c',
+    messagingSenderId: '211339829221',
+    projectId: 'dvr-timer',
+    authDomain: 'dvr-timer.firebaseapp.com',
+    storageBucket: 'dvr-timer.firebasestorage.app',
+    measurementId: 'G-QR6CEFEHYR',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBVR1Y7SDeDn1rHrgq5vHPruSQFwZ4RiCo',
+    appId: '1:211339829221:ios:c020db51e8f233080c590c',
+    messagingSenderId: '211339829221',
+    projectId: 'dvr-timer',
+    storageBucket: 'dvr-timer.firebasestorage.app',
+    androidClientId: '211339829221-0jnq5rq80i74cp4rcgm6euk2i33oagv0.apps.googleusercontent.com',
+    iosClientId: '211339829221-lnt9c3i871fqfavkl1uverq53unrgaov.apps.googleusercontent.com',
+    iosBundleId: 'com.codexus.dvrTimer',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyC1dcr-CflG7jOu67E_4axbhWGyjNkvxEc',
+    appId: '1:211339829221:web:a360d1b9ae0d83370c590c',
+    messagingSenderId: '211339829221',
+    projectId: 'dvr-timer',
+    authDomain: 'dvr-timer.firebaseapp.com',
+    storageBucket: 'dvr-timer.firebasestorage.app',
+    measurementId: 'G-CCTCNE69GC',
   );
 }
