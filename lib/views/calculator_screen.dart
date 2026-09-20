@@ -51,13 +51,13 @@ class DvrCalculatorScreen extends StatelessWidget {
               child: SafeArea(
                 child: Column(
                   children: [
-                    _buildSubscriptionBanner(
-                      isAr,
-                      isSubscribed,
-                      daysLeft,
-                      userId,
-                    ),
-
+                    // ✅ تم إيقاف شريط الاشتراك مؤقتاً بجعله تعليقاً
+                    // _buildSubscriptionBanner(
+                    //   isAr,
+                    //   isSubscribed,
+                    //   daysLeft,
+                    //   userId,
+                    // ),
                     Expanded(
                       child: Center(
                         child: SingleChildScrollView(
