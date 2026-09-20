@@ -37,11 +37,6 @@ workflows:
       - name: Apply Vault Profiles
         script: xcode-project use-profiles
 
-      - name: Force Remove Alpha Channel from iOS Icons
-        script: |
-          brew install imagemagick
-          find ios/Runner/Assets.xcassets/AppIcon.appiconset -name "*.png" -exec mogrify -alpha off {} \;
-
       - name: Build IPA
         script: |
           flutter build ipa --release --export-options-plist=$HOME/export_options.plist
