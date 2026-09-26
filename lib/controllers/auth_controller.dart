@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import '../firebase_options.dart';
 
 class AuthController extends GetxController {
   static AuthController get instance => Get.find<AuthController>();
@@ -15,7 +16,11 @@ class AuthController extends GetxController {
   static const String _webClientId =
       '211339829221-esc2as8u9ooipilph9dv92j81vva5qd5.apps.googleusercontent.com';
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  // ✅ تعريف GoogleSignIn بالطريقة الصحيحة لدعم الأندرويد والآيفون
+  late final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: _webClientId,
+    clientId: Platform.isIOS ? DefaultFirebaseOptions.ios.iosClientId : null,
+  );
 
   Rxn<User> firebaseUser = Rxn<User>();
   RxMap<String, dynamic> userData = <String, dynamic>{}.obs;
@@ -26,7 +31,6 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _googleSignIn.initialize(serverClientId: _webClientId);
     firebaseUser.bindStream(_auth.userChanges());
     ever(firebaseUser, _bindFirestoreUser);
   }
@@ -48,6 +52,9 @@ class AuthController extends GetxController {
       _db.collection('users').doc(user.uid).snapshots().listen((doc) async {
         if (doc.exists) {
           final data = doc.data() as Map<String, dynamic>;
+
+          // ✅ تم إيقاف شرط جهاز واحد مؤقتاً لسهولة التجربة
+          /*
           final String currentDeviceId = await _getDeviceId();
           final String? savedDeviceId = data['deviceId'];
 
@@ -64,7 +71,12 @@ class AuthController extends GetxController {
             _showErrorSnackbar(
               'هذا الحساب مرتبط بجهاز آخر بالفعل. لا يمكنك استخدام الحساب إلا من جهازك الأساسي.',
             );
+            return;
           }
+          */
+
+          // السطر ده بيسمح بالدخول من أي جهاز حالياً
+          userData.assignAll(data);
         } else {
           final String currentDeviceId = await _getDeviceId();
           _createNewUserRecord(user.uid, user.email ?? '', currentDeviceId);
@@ -194,15 +206,21 @@ class AuthController extends GetxController {
   Future<void> signInWithGoogle() async {
     try {
       isLoading.value = true;
-      final googleUser = await _googleSignIn.authenticate();
 
-      // ✅ تم إزالة await وعلامة ?. بناءً على تعليمات المترجم
-      final googleAuth = googleUser.authentication;
+      // ✅ استخدام مكتبة google_sign_in الأصلية
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-      );
-      await _auth.signInWithCredential(credential);
+      if (googleUser != null) {
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        await _auth.signInWithCredential(credential);
+      }
     } on FirebaseAuthException catch (e) {
       _showErrorSnackbar(_getFriendlyErrorMessage(e.code));
     } catch (e) {
@@ -246,16 +264,15 @@ class AuthController extends GetxController {
     }
   }
 
-  // ✅ تحديث الاسم
   Future<void> updateUserName(String newName) async {
     if (newName.trim().isEmpty) return;
     try {
       isLoading.value = true;
       await _auth.currentUser?.updateDisplayName(newName.trim());
-      await _auth.currentUser?.reload(); // جلب البيانات الجديدة
+      await _auth.currentUser?.reload();
       firebaseUser.value = _auth.currentUser;
 
-      if (Get.isDialogOpen == true) Get.back(); // إغلاق نافذة التعديل
+      if (Get.isDialogOpen == true) Get.back();
       _showSuccessSnackbar('تم بنجاح', 'تم تحديث الاسم.');
     } catch (e) {
       _showErrorSnackbar('فشل تحديث الاسم.');

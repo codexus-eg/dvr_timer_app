@@ -74,7 +74,8 @@
             <string>Editor</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>com.googleusercontent.apps.211339829221-esc2as8u9ooipilph9dv92j81vva5qd5</string>
+                <!-- ده الـ ID الجديد المعكوس الخاص بالآيفون -->
+                <string>com.googleusercontent.apps.211339829221-mfhee0p31n7sr04ufktnmd0q66t68qcq</string>
             </array>
         </dict>
     </array>

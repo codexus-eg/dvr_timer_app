@@ -2,7 +2,7 @@ name: dvr_timer
 description: "A new Flutter project."
 publish_to: "none"
 
-version: 1.0.0+3
+version: 1.0.0+4
 
 environment:
   sdk: ^3.12.1
@@ -15,7 +15,6 @@ dependencies:
   shared_preferences: ^2.5.5
   firebase_core: ^4.10.0
   firebase_auth: ^6.5.2
-  google_sign_in: ^7.2.0
   cloud_firestore: ^6.5.0
   get: ^4.7.3
   dio: ^5.9.2
