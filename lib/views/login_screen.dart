@@ -1,3 +1,4 @@
+import 'dart:io'; // تم إضافة هذا السطر للتعرف على نوع النظام (iOS)
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
@@ -110,11 +111,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // ✅ نافذة إعادة تعيين كلمة المرور
   void _showResetPasswordDialog() {
     final TextEditingController resetEmailController = TextEditingController();
 
-    // لو العميل كاتب إيميل في الشاشة الرئيسية ناخده له جاهز
     if (emailController.text.isNotEmpty && emailController.text.contains('@')) {
       resetEmailController.text = emailController.text;
     }
@@ -393,7 +392,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 },
                               ),
 
-                              // ✅ زرار نسيت كلمة المرور (يظهر فقط في حالة تسجيل الدخول)
                               if (authController.isLoginMode.value)
                                 Align(
                                   alignment: Alignment.centerLeft,
@@ -561,6 +559,39 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+                      // ✅ زر أبل يظهر هنا إذا كان الجهاز يعمل بنظام iOS
+                      if (Platform.isIOS) ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton.icon(
+                            onPressed: authController.isLoading.value
+                                ? null
+                                : () => authController.signInWithApple(),
+                            icon: const Icon(
+                              Icons.apple,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            label: const Text(
+                              'المتابعة باستخدام Apple',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

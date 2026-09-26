@@ -232,6 +232,28 @@ class AuthController extends GetxController {
     }
   }
 
+  Future<void> signInWithApple() async {
+    try {
+      isLoading.value = true;
+
+      // استخدام مزود أبل المدمج في فايربيز
+      final appleProvider = AppleAuthProvider();
+      appleProvider.addScope('email');
+      appleProvider.addScope('name');
+
+      // تسجيل الدخول المباشر
+      await _auth.signInWithProvider(appleProvider);
+    } on FirebaseAuthException catch (e) {
+      _showErrorSnackbar(_getFriendlyErrorMessage(e.code));
+    } catch (e) {
+      if (!e.toString().contains('canceled')) {
+        _showErrorSnackbar('فشل الاتصال بـ Apple، يرجى المحاولة لاحقاً.');
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();
